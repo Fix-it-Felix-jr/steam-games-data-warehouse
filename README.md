@@ -118,11 +118,13 @@ DM_Project/
 │   └── processed/                     # Data Warehouse locale
 │       └── steam_dw.db                # Database SQLite sincronizzato
 ├── scripts/
-│   ├── generate_dataset.py            # Generatore dataset sintetici compatibili Kaggle
+│   ├── fetch_real_steam_data.py       # Ingestione dataset reali da Kaggle e Steam Store Web API
+│   ├── generate_dataset.py            # Generatore dataset sintetici (backup offline)
 │   ├── schema.sql                     # DDL Star Schema PostgreSQL (Staging, Dim, Fact, Indici)
 │   ├── etl_pipeline.py                # Pipeline ETL automatizzata (Extract, Transform, Load)
 │   ├── olap_queries.sql               # Suite delle 10 query analitiche OLAP
-│   └── run_olap_queries.py            # Runner ed esecutore query con calcolo latenze
+│   ├── run_olap_queries.py            # Runner ed esecutore query con calcolo latenze
+│   └── demo_presentation.py           # Runner interattivo di validazione delle operazioni OLAP
 ├── dashboard/
 │   ├── app.py                         # Web App Interattiva con live SQL OLAP Runner (Porta 8501)
 │   ├── export_reports.py              # Generatore di grafici analitici ad alta risoluzione (PNG)
@@ -149,11 +151,14 @@ pip install psycopg2-binary pandas matplotlib numpy
 ```
 PostgreSQL deve essere attivo con il database `steam_dw` (oppure verrà utilizzato in automatico il motore SQLite integrato).
 
-### 2. Generazione dei Dataset Grezzi
+### 2. Acquisizione dei Dataset Reali (Kaggle & Steam Web API)
 ```bash
-python3 scripts/generate_dataset.py
+# Scarica i giochi da Kaggle/SteamSpy e raccoglie recensioni reali dalle Steam API
+python3 scripts/fetch_real_steam_data.py
+
+# (In alternativa, per lavorare offline senza rete, è disponibile il generatore sintetico):
+# python3 scripts/generate_dataset.py
 ```
-*Genera i file `steam_games.csv` (350 giochi) e `steam_reviews.csv` (4.000 recensioni).*
 
 ### 3. Esecuzione della Pipeline ETL
 ```bash
@@ -162,20 +167,30 @@ python3 scripts/etl_pipeline.py --target both
 ```
 *Esegue l'estrazione, il data cleaning, la generazione delle chiavi surrogate, l'ingestione nelle dimensioni e il caricamento batch ad alte prestazioni nei fatti.*
 
-### 4. Esecuzione della Suite Query OLAP
+### 4. Runner Interattivo di Validazione OLAP (5 Minuti)
 ```bash
-# Esegue le 10 query dimensionali su PostgreSQL
+# Esegue la suite guidata con spiegazione degli operatori OLAP e benchmark di latenza
+python3 scripts/demo_presentation.py
+
+# Oppure in modalità di esecuzione automatica:
+python3 scripts/demo_presentation.py --auto --delay 4
+```
+*Valida passo-passo Star Schema, Roll-up, Slice & Dice con bridge table, Window Functions (`DENSE_RANK`, `LAG`) ed elasticità del prezzo.*
+
+### 5. Esecuzione della Suite Completa Query OLAP
+```bash
+# Esegue tutte le 10 query dimensionali in sequenza su PostgreSQL
 python3 scripts/run_olap_queries.py --engine postgres
 ```
 *Esegue in pochi millisecondi Rollup, Slice & Dice, Window Functions (`DENSE_RANK`, `LAG`), elasticità del prezzo e matrici di mercato.*
 
-### 5. Generazione dei Grafici Visivi (PNG)
+### 6. Generazione dei Grafici Visivi (PNG)
 ```bash
 python3 dashboard/export_reports.py
 ```
 *Esporta i grafici analitici a 300 DPI in `dashboard/plots/`.*
 
-### 6. Avvio della Dashboard Interattiva
+### 7. Avvio della Dashboard Interattiva
 ```bash
 python3 dashboard/app.py
 ```

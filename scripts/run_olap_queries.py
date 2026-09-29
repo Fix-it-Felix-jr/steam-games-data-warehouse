@@ -10,6 +10,9 @@ import argparse
 import time
 import pandas as pd
 
+import warnings
+warnings.filterwarnings('ignore', category=UserWarning)
+
 try:
     import psycopg2
     HAS_PSYCOPG2 = True

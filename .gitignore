@@ -40,3 +40,10 @@ env/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Presenter notes and private presentation guides (excluded from academic repo)
+docs/DEMO_5_MINUTI_GUIDA.md
+docs/SPEECH_12_MINUTES_ENGLISH.md
+*presenter*
+*scaletta*
+*speech*

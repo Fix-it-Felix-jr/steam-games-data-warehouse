@@ -9,6 +9,8 @@ import os
 import sys
 import pandas as pd
 import matplotlib.pyplot as plt
+import warnings
+warnings.filterwarnings('ignore', category=UserWarning)
 
 try:
     import psycopg2

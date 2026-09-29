@@ -103,7 +103,7 @@ flowchart TD
 ### Le Tre Fasi dell'ETL (`scripts/etl_pipeline.py`)
 
 1. **Extract (Estrazione)**:
-   - Ingestione dei flussi da sorgenti CSV: anagrafica dei giochi (`steam_games.csv`, 350 titoli) e recensioni utente (`steam_reviews.csv`, 4.000 recensioni con oltre 1.150 utenti unici).
+   - Ingestione dei flussi da sorgenti CSV: anagrafica dei giochi (`steam_games.csv`, 350 titoli reali estratti dal dataset Kaggle Steam Store e arricchiti con SteamSpy) e recensioni utente (`steam_reviews.csv`, 4.856 recensioni reali raccolte direttamente dalle Steam Store Web API da 4.700+ utenti autentici).
    - Caricamento preliminare nelle tabelle di staging relazionali `stg_steam_games` e `stg_steam_reviews`. Questa separazione protegge il Data Warehouse da corruzioni e garantisce l'idempotenza del caricamento.
 
 2. **Transform (Trasformazione e Normalizzazione)**:
@@ -336,19 +336,24 @@ Tutti i componenti del repository sono progettati per l'esecuzione diretta e aut
 ### Pipeline di Esecuzione Sequenziale
 
 ```bash
-# 1. Generazione dei dataset grezzi sintetici Kaggle
-python3 scripts/generate_dataset.py
+# 1. Acquisizione dei dataset reali da Kaggle e Steam Store API
+python3 scripts/fetch_real_steam_data.py
+# (In alternativa, per lavorare offline senza rete, è disponibile il generatore sintetico):
+# python3 scripts/generate_dataset.py
 
 # 2. Esecuzione della Pipeline ETL su PostgreSQL (con fallback SQLite)
 python3 scripts/etl_pipeline.py --target both
 
-# 3. Esecuzione della suite completa delle 10 query OLAP
+# 3. Validazione interattiva guidata e benchmark latenze OLAP
+python3 scripts/demo_presentation.py
+
+# 4. Esecuzione della suite completa delle 10 query OLAP
 python3 scripts/run_olap_queries.py --engine postgres
 
-# 4. Esportazione dei grafici visivi ad alta risoluzione (PNG)
+# 5. Esportazione dei grafici visivi ad alta risoluzione (PNG)
 python3 dashboard/export_reports.py
 
-# 5. Avvio del server web per la Dashboard interattiva
+# 6. Avvio del server web per la Dashboard interattiva
 python3 dashboard/app.py
 ```
 Accedere a `http://localhost:8501` nel browser web per interagire con la dashboard.

@@ -10,6 +10,8 @@ import json
 import http.server
 import socketserver
 from urllib.parse import parse_qs, urlparse
+import warnings
+warnings.filterwarnings('ignore', category=UserWarning)
 
 try:
     import psycopg2

@@ -7,6 +7,7 @@ and loads into PostgreSQL (primary Data Warehouse) with optional SQLite fallback
 
 import os
 import sys
+import re
 import argparse
 import sqlite3
 import pandas as pd
@@ -57,6 +58,30 @@ def get_sqlite_connection():
     conn = sqlite3.connect(SQLITE_DB_FILE)
     conn.execute("PRAGMA foreign_keys = ON;")
     return conn
+
+def classify_developer(dev_name):
+    """Classifies game developer into AAA, AA, or Indie based on industry tier."""
+    if not dev_name or pd.isna(dev_name):
+        return "Indie", True
+    d = str(dev_name).lower()
+    aaa_kw = [
+        "valve", "cd projekt", "fromsoftware", "bethesda", "capcom", "square enix",
+        "larian", "bandai", "ubisoft", "electronic arts", "ea", "rockstar",
+        "activision", "blizzard", "2k", "sony", "playstation", "warner",
+        "respawn", "bioware", "bungie", "sega", "konami", "kojima",
+        "santa monica", "naughty dog", "insomniac", "turn 10", "playground", "guerrilla"
+    ]
+    aa_kw = [
+        "paradox", "techland", "focus", "thq", "remedy", "deep silver",
+        "team17", "rebellion", "creative assembly", "fatshark", "frontier", "saber"
+    ]
+    for kw in aaa_kw:
+        if kw in d:
+            return "AAA", False
+    for kw in aa_kw:
+        if kw in d:
+            return "AA", False
+    return "Indie", True
 
 # -----------------------------------------------------------------------------
 # Extraction
@@ -163,17 +188,10 @@ def run_postgres_etl(df_games, df_reviews, pg_config):
         print("[PostgreSQL ETL] Step 3: Transforming and loading Dimension Tables...")
         
         # 3.1 dim_developer
-        aaa_devs = ["Valve", "CD Projekt Red", "FromSoftware", "Bethesda Softworks", "Capcom", "Square Enix", "Larian Studios", "Bandai Namco", "Ubisoft"]
-        aa_devs = ["Paradox Development Studio", "Techland"]
         dev_records = []
         for dev in df_games["developer"].dropna().unique():
             dev_str = str(dev).strip()
-            if dev_str in aaa_devs:
-                tier = "AAA"
-            elif dev_str in aa_devs:
-                tier = "AA"
-            else:
-                tier = "Indie"
+            tier, _ = classify_developer(dev_str)
             dev_records.append((dev_str, "International", tier))
             
         execute_values(
@@ -189,12 +207,12 @@ def run_postgres_etl(df_games, df_reviews, pg_config):
         # 3.2 dim_genre
         all_genres = set()
         for g_list in df_games["genres"].dropna():
-            for g in str(g_list).split(","):
+            for g in re.split(r'[,;/]', str(g_list)):
                 g_clean = g.strip()
-                if g_clean:
+                if g_clean and len(g_clean) < 60:
                     all_genres.add(g_clean)
         genre_records = [
-            (g, "Core" if g in ["Action", "RPG", "Strategy"] else "Specialty")
+            (g, "Core" if g in ["Action", "RPG", "Strategy", "Adventure"] else "Specialty")
             for g in sorted(all_genres)
         ]
         execute_values(
@@ -215,12 +233,12 @@ def run_postgres_etl(df_games, df_reviews, pg_config):
             dev = str(row["developer"])[:255] if pd.notna(row["developer"]) else "Unknown"
             pub = str(row["publisher"])[:255] if pd.notna(row["publisher"]) else "Unknown"
             try:
-                rel_dt = datetime.strptime(str(row["release_date"]), "%Y-%m-%d").date()
+                rel_dt = pd.to_datetime(str(row["release_date"])).date()
                 rel_year = rel_dt.year
             except Exception:
                 rel_dt = date(2020, 1, 1)
                 rel_year = 2020
-            is_indie = dev not in aaa_devs
+            _, is_indie = classify_developer(dev)
             game_records.append((app_id, title, dev, pub, "E10+", rel_dt, rel_year, is_indie))
             
         execute_values(
@@ -427,17 +445,16 @@ def run_sqlite_etl(df_games, df_reviews):
         conn.commit()
         
         # Dimensions
-        aaa_devs = ["Valve", "CD Projekt Red", "FromSoftware", "Bethesda Softworks", "Capcom", "Square Enix", "Larian Studios", "Bandai Namco", "Ubisoft"]
-        dev_records = [(dev, "International", "AAA" if dev in aaa_devs else "Indie") for dev in df_games["developer"].dropna().unique()]
+        dev_records = [(str(dev).strip(), "International", classify_developer(dev)[0]) for dev in df_games["developer"].dropna().unique()]
         cur.executemany("INSERT OR IGNORE INTO dim_developer (developer_name, country, dev_tier) VALUES (?, ?, ?)", dev_records)
         
         all_genres = set()
         for g_list in df_games["genres"].dropna():
-            for g in str(g_list).split(","):
+            for g in re.split(r'[,;/]', str(g_list)):
                 g_clean = g.strip()
-                if g_clean:
+                if g_clean and len(g_clean) < 60:
                     all_genres.add(g_clean)
-        genre_records = [(g, "Core" if g in ["Action", "RPG", "Strategy"] else "Specialty") for g in sorted(all_genres)]
+        genre_records = [(g, "Core" if g in ["Action", "RPG", "Strategy", "Adventure"] else "Specialty") for g in sorted(all_genres)]
         cur.executemany("INSERT OR IGNORE INTO dim_genre (genre_name, genre_category) VALUES (?, ?)", genre_records)
         
         game_records = []
@@ -447,12 +464,12 @@ def run_sqlite_etl(df_games, df_reviews):
             dev = str(row["developer"]) if pd.notna(row["developer"]) else "Unknown"
             pub = str(row["publisher"]) if pd.notna(row["publisher"]) else "Unknown"
             try:
-                rel_dt = datetime.strptime(str(row["release_date"]), "%Y-%m-%d").date()
+                rel_dt = pd.to_datetime(str(row["release_date"])).date()
                 rel_year = rel_dt.year
             except Exception:
                 rel_dt = date(2020, 1, 1)
                 rel_year = 2020
-            is_indie = dev not in aaa_devs
+            _, is_indie = classify_developer(dev)
             game_records.append((app_id, title, dev, pub, "E10+", rel_dt.strftime("%Y-%m-%d"), rel_year, is_indie))
         cur.executemany("INSERT OR IGNORE INTO dim_game (app_id, game_title, developer_name, publisher_name, age_rating, release_date, release_year, is_indie) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", game_records)
         
