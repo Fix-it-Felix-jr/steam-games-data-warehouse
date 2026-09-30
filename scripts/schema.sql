@@ -123,7 +123,7 @@ CREATE TABLE fact_game_reviews_analytics (
     total_positive_reviews INT,
     total_negative_reviews INT,
     positive_ratio NUMERIC(5, 2),
-    estimated_revenue_usd NUMERIC(12, 2)
+    estimated_revenue_usd NUMERIC(18, 2)
 );
 
 -- ----------------------------------------------------------------------------

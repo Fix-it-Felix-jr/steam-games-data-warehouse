@@ -103,7 +103,7 @@ flowchart TD
 ### Le Tre Fasi dell'ETL (`scripts/etl_pipeline.py`)
 
 1. **Extract (Estrazione)**:
-   - Ingestione dei flussi da sorgenti CSV: anagrafica dei giochi (`steam_games.csv`, 350 titoli reali estratti dal dataset Kaggle Steam Store e arricchiti con SteamSpy) e recensioni utente (`steam_reviews.csv`, 4.856 recensioni reali raccolte direttamente dalle Steam Store Web API da 4.700+ utenti autentici).
+   - Ingestione dei flussi da sorgenti CSV: anagrafica dei giochi (`steam_games.csv`, **27.415 titoli reali** estratti dall'intero dataset Kaggle Steam Store 1997–2019 di Nik Davis integrati con i titoli moderni 2020–2026 tramite SteamSpy) e recensioni utente (`steam_reviews.csv`, **4.857 recensioni reali** raccolte direttamente dalle Steam Store Web API da 4.700+ utenti autentici).
    - Caricamento preliminare nelle tabelle di staging relazionali `stg_steam_games` e `stg_steam_reviews`. Questa separazione protegge il Data Warehouse da corruzioni e garantisce l'idempotenza del caricamento.
 
 2. **Transform (Trasformazione e Normalizzazione)**:

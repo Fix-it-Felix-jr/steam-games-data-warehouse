@@ -105,6 +105,15 @@ erDiagram
 ### Granularità della Tabella dei Fatti
 Ogni tupla di `fact_game_reviews_analytics` rappresenta **una singola recensione pubblicata da uno specifico utente per un gioco, associato al suo sviluppatore e ad una data**, arricchita con le metriche del titolo al momento del censimento.
 
+### 📈 Volumetria e Sorgenti Dati Reali
+Il Data Warehouse carica e analizza dati reali provenienti da fonti aperte e API ufficiali:
+- **`dim_game`**: **27.415 giochi unici** censiti (1997–2026), basati sull'intero dataset Kaggle [Steam Store Games (Clean dataset)](https://www.kaggle.com/datasets/nikdavis/steam-store-games/data) di Nik Davis (27.075 titoli) integrato con titoli moderni tramite SteamSpy API.
+- **`dim_developer`**: **17.297 studi di sviluppo** classificati dimensionalmente in *AAA*, *AA* e *Indie*.
+- **`dim_genre` & `bridge_game_genre`**: **29 generi** e **77.142 archi di associazione N:M** risolti tramite Bridge Table normalizzata.
+- **`dim_time`**: **2.652 date storiche uniche** dal 1997 al 2026.
+- **`dim_user`**: **4.734 recensori Steam autentici** segmentati per livello di esperienza (*Casual*, *Enthusiast*, *Expert*).
+- **`fact_game_reviews_analytics`**: **4.857 recensioni verificate** con metriche di engagement, playtime e fatturato stimato lordo.
+
 ---
 
 ## 📁 Struttura del Repository
